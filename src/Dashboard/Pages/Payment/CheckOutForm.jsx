@@ -1,4 +1,4 @@
-import { CardElement, useElements, useStripe } from "@stripe/react-stripe-js";
+import { CardNumberElement, CardExpiryElement, CardCvcElement, useElements, useStripe } from "@stripe/react-stripe-js";
 import { useEffect, useState } from "react";
 import Swal from "sweetalert2";
 import useAxios from "../../../hooks/useAxios";
@@ -8,7 +8,6 @@ import useWinnerData from "../../../hooks/useWinnerData";
 
 const CheckoutForm = ({ loadedContest }) => {
   const { winningCount } = useWinnerData();
-
   const stripe = useStripe();
   const elements = useElements();
   const axiosSecure = useAxios();
@@ -16,166 +15,143 @@ const CheckoutForm = ({ loadedContest }) => {
   const [error, setError] = useState("");
   const [clientSecret, setClientSecret] = useState("");
   const [transactionId, setTransactionId] = useState("");
+  const [processing, setProcessing] = useState(false);
   const navigate = useNavigate();
+
+  // ১. পেমেন্ট ইনটেন্ট তৈরি
   useEffect(() => {
-    if (loadedContest.price > 0) {
+    if (loadedContest?.price > 0) {
       axiosSecure
         .post("/create-payment-intent", { price: loadedContest.price })
         .then((res) => {
           setClientSecret(res.data.clientSecret);
-        });
+        })
+        .catch((err) => console.error("Client Secret Error:", err));
     }
   }, [axiosSecure, loadedContest]);
+
   const handleSubmit = async (event) => {
     event.preventDefault();
-
-    const task = event.target.task.value;
+    setProcessing(true);
+    setError("");
 
     if (!stripe || !elements) {
+      setProcessing(false);
       return;
     }
 
-    const card = elements.getElement(CardElement);
+    const cardNumber = elements.getElement(CardNumberElement);
 
-    if (card === null) {
-      return;
-    }
-
-    const { error, paymentMethod } = await stripe.createPaymentMethod({
-      type: "card",
-      card,
+    // ২. পেমেন্ট কনফার্ম করা
+    const { paymentIntent, error: confirmError } = await stripe.confirmCardPayment(clientSecret, {
+      payment_method: {
+        card: cardNumber,
+        billing_details: {
+          email: user?.email || "anonymous",
+          name: user?.displayName || "anonymous",
+        },
+      },
     });
 
-    if (error) {
-      console.log("payment error", error);
-      setError(error.message);
-    } else {
-      console.log("payment method", paymentMethod);
-      setError("");
+    if (confirmError) {
+      setError(confirmError.message);
+      setProcessing(false);
+      return;
     }
 
-    // confirm payment
-    const { paymentIntent, error: confirmError } =
-      await stripe.confirmCardPayment(clientSecret, {
-        payment_method: {
-          card: card,
-          billing_details: {
-            email: user?.email || "anonymous",
-            name: user?.displayName || "anonymous",
-          },
-        },
-      });
+    if (paymentIntent.status === "succeeded") {
+      setTransactionId(paymentIntent.id);
 
-    if (confirmError) {
-      console.log("confirm error");
-    } else {
-      console.log("payment intent", paymentIntent);
-      if (paymentIntent.status === "succeeded") {
-        setTransactionId(paymentIntent.id);
+      // ৩. ডাটাবেসে সেভ করা
+      const registration = {
+        email: user.email,
+        name: user.displayName,
+        image: user.photoURL,
+        price: loadedContest.price,
+        contestName: loadedContest.contestName,
+        creatorEmail: loadedContest.creatorEmail,
+        creatorName: loadedContest.creatorName,
+        contestId: loadedContest._id,
+        transactionId: paymentIntent.id,
+        contestImage: loadedContest?.image,
+        deadline: loadedContest.deadline,
+        date: new Date(),
+        status: "pending",
+        task: "no task",
+      };
 
-        // now save the payment in the database
-        const registration = {
-          email: user.email,
-          name: user.displayName,
-          image: user.photoURL,
-          price: loadedContest.price,
-          contestName: loadedContest.contestName,
-          creatorEmail: loadedContest.creatorEmail,
-          creatorName: loadedContest.creatorName,
-          contestId: loadedContest._id,
-          transactionId: paymentIntent.id,
-          contestImage: loadedContest?.image,
-          deadline: loadedContest.deadline,
-          date: new Date(),
-          status: "pending",
-          task: task,
-        };
-        
-
-        const res = await axiosSecure.post("/registrations", registration);
+      const res = await axiosSecure.post("/registrations", registration);
       
-        if (res?.data) {
-          axiosSecure
-            .put(`/contests/attendance/${loadedContest._id}`, {
-              attendance: loadedContest.attendance + 1,
-            })
-            .then((res) => {
-              console.log(res.data);
-              if (res.data.modifiedCount > 0) {
-                Swal.fire("success", "payment successfully");
-                navigate("/dashboard/myParticipatedContest");
-              }
-            });
-        }
+      if (res.data.insertedId) {
+        await axiosSecure.put(`/contests/attendance/${loadedContest._id}`, {
+          attendance: (loadedContest.attendance || 0) + 1,
+        });
+
+        Swal.fire("Success", "Payment Successful!", "success");
+        navigate("/dashboard/myParticipatedContest");
       }
+      setProcessing(false);
     }
   };
 
-  const isExist = winningCount.filter(
-    (win) => win?.contestId === loadedContest._id
-  );
+  const isExist = winningCount?.filter(win => win?.contestId === loadedContest._id) || [];
+
+  // ইনপুট ফিল্ডের স্টাইল
+  const elementOptions = {
+    style: {
+      base: {
+        fontSize: "16px",
+        color: "#424770",
+        "::placeholder": { color: "#aab7c4" },
+      },
+      invalid: { color: "#9e2146" },
+    },
+  };
 
   return (
-    <div className="max-w-7xl mx-auto flex justify-center items-center min-h-[calc(100vh-150px)] p-4 md:p-10">
-      <div className=" p-4 max-w-xl min-w-[405px] border-2 border-gray-500 bg-gray-100 rounded-2xl">
-        <div className="mb-3">
-          <img
-            className="mask mask-parallelogram-2 w-full "
-            src={loadedContest.image}
-          />
-          <h2 className="text-2xl font-semibold text-center text-gray-700">
-            {loadedContest.contestName}
-          </h2>
-        </div>
-        <form onSubmit={handleSubmit}>
-          <div className="form-control mb-6">
-            <label className="label">
-              <span className="label-text">Submit your task</span>
-            </label>
-            <textarea
-              name="task"
-              className="textarea textarea-info"
-              placeholder="Submit your task."
-              required
-            ></textarea>
+    <div className="max-w-7xl mx-auto flex justify-center items-center min-h-[calc(100vh-150px)] p-4">
+      <div className="p-8 max-w-lg w-full bg-white shadow-2xl rounded-2xl border border-gray-100">
+        <h2 className="text-2xl font-bold text-center mb-6 text-gray-800">Complete Payment</h2>
+        
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="label font-semibold">Task Submission</label>
+            <textarea name="task" className="textarea textarea-bordered w-full h-20" required placeholder="Paste your task link or details here..."></textarea>
           </div>
-          <CardElement
-            options={{
-              style: {
-                base: {
-                  fontSize: "16px",
-                  color: "#424770",
-                  "::placeholder": {
-                    color: "#aab7c4",
-                  },
-                },
-                invalid: {
-                  color: "#9e2146",
-                },
-              },
-            }}
-          />
+
+          <div className="space-y-4">
+            <div className="p-3 border rounded-lg bg-gray-50">
+              <label className="text-xs font-bold text-gray-500 uppercase">Card Number</label>
+              <CardNumberElement options={elementOptions} />
+            </div>
+            
+            <div className="flex gap-4">
+              <div className="p-3 border rounded-lg bg-gray-50 flex-1">
+                <label className="text-xs font-bold text-gray-500 uppercase">Expiration Date</label>
+                <CardExpiryElement options={elementOptions} />
+              </div>
+              <div className="p-3 border rounded-lg bg-gray-50 flex-1">
+                <label className="text-xs font-bold text-gray-500 uppercase">CVC</label>
+                <CardCvcElement options={elementOptions} />
+              </div>
+            </div>
+          </div>
 
           {isExist.length > 0 ? (
-            <button disabled className="btn btn-block ">
-              Already Submitted
-            </button>
+            <button disabled className="btn btn-block">Already Registered</button>
           ) : (
-            <button
-              className="btn btn-primary my-8 font-bold btn-block"
-              type="submit"
-              disabled={!stripe || !clientSecret}
+            <button 
+              className="btn btn-primary btn-block text-white font-bold text-lg mt-4" 
+              type="submit" 
+              disabled={!stripe || !clientSecret || processing}
             >
-              PAY ${loadedContest.price}
+              {processing ? "Processing..." : `Pay $${loadedContest.price}`}
             </button>
           )}
         </form>
-        <p className="text-red-600 text-xl">{error}</p>
-        {transactionId && (
-          <p className="text-lg text-green-600">
-            your transition id: {transactionId}
-          </p>
-        )}
+
+        {error && <p className="text-red-500 mt-4 text-center font-medium">{error}</p>}
+        {transactionId && <p className="text-green-600 mt-2 text-center">ID: {transactionId}</p>}
       </div>
     </div>
   );

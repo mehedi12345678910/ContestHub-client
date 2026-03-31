@@ -49,7 +49,7 @@ const ContestDetails = () => {
                       {contest?.winnerEmail ? (
                         <p className="text-lg text-red-600">Contest Closed</p>
                       ) : (
-                        <Timer duration={totalDays * 24 * 60 * 60 * 1000} />
+                        <Timer duration={totalDays * 10 * 60 * 60 * 1000} />
                       )}
                     </div>
                   </div>
