@@ -2,16 +2,19 @@ import { useQuery } from "@tanstack/react-query";
 import useAxios from "../../hooks/useAxios";
 import { useEffect } from "react";
 import AOS from "aos";
+import { HiOutlineBadgeCheck } from "react-icons/hi";
 
 const BestCreator = () => {
   useEffect(() => {
     AOS.init({
       duration: 1000,
-      delay: 300,
+      delay: 200,
+      once: true,
     });
   }, []);
+
   const axiosSecure = useAxios();
-  const { data: bestCreator = [] } = useQuery({
+  const { data: bestCreator = [], isLoading } = useQuery({
     queryKey: ["bestCreator"],
     queryFn: async () => {
       const res = await axiosSecure.get(`/bestCreator`);
@@ -20,63 +23,84 @@ const BestCreator = () => {
   });
 
   return (
-    <div className="max-w-5xl mx-auto">
-      <div className="text-2xl md:text-5xl font-medium flex justify-center my-6 ">
-        <div data-aos="zoom-in-up">Best Contest Creator With </div>
-        <div data-aos="zoom-in-up" className="text-cyan-400 mx-1">
-          Success!
-        </div>
+    <div className="max-w-7xl mx-auto px-4 py-16">
+      {/* Section Title */}
+      <div className="text-center mb-12 space-y-2">
+        <h2 
+          data-aos="fade-down"
+          className="text-3xl md:text-5xl font-bold text-[#1d3557]"
+        >
+          Top Contest <span className="text-[#e63946]">Creators</span>
+        </h2>
+        <p data-aos="fade-up" className="text-gray-500 font-medium">
+          The brilliant minds behind our most successful innovations.
+        </p>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
-        {bestCreator.map((creator) => (
+
+      {/* Grid Layout */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+        {bestCreator.map((creator, index) => (
           <div
             key={creator._id}
-            style={{ borderRadius: "70px 10px 70px 10px" }}
-            className="overflow-hidden w-full m-4 flex justify-center  shadow-xl bg-cyan-400"
+            data-aos="zoom-in"
+            data-aos-delay={index * 100}
+            className="group relative"
           >
-            <div className="flex flex-col md:flex-row items-center justify-center bg-white rounded-tl-full">
-              <div className="items-center justify-center flex py-2">
-                <div className="flex flex-col items-center justify-center">
-                  <div className="flex items-center">
-                    <div className="p-1 bg-white rounded-full w-36 h-36 overflow-hidden">
-                      <img
-                        data-aos="zoom-in-up"
-                        src={creator?.creatorImage}
-                        alt=""
-                        className="rounded-full w-full h-full object-cover"
-                      />
-                    </div>
-                    <div>
-                      <div
-                        data-aos="zoom-in-up"
-                        className="font-bold text-stone-500 mx-4"
-                      >
-                        {creator?.creatorName}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="text-sm px-4 font-medium text-stone-500 hover:text-stone-500 mx-4">
-                    <span
-                      data-aos="zoom-in-up"
-                      className="text-teal-600 font-bold"
-                    >
-                      One Of The Best Contest:
-                    </span>
-                    {creator?.contestName}
-                  </div>
-                  <div
-                    data-aos="zoom-in-up"
-                    className="text-stone-400 m-2 px-4"
-                  >
-                    {creator?.description}
-                  </div>
+            {/* Background Shape / Card */}
+            <div 
+              style={{ borderRadius: "60px 15px 60px 15px" }}
+              className="bg-white p-8 shadow-lg border border-gray-100 transition-all duration-500 group-hover:shadow-2xl group-hover:-translate-y-2 flex flex-col items-center text-center relative overflow-hidden"
+            >
+              {/* Decorative Accent */}
+              <div className="absolute top-0 left-0 w-24 h-24 bg-[#a8dadc]/20 rounded-br-full -z-0"></div>
+              
+              {/* Image with Ring */}
+              <div className="relative z-10 mb-6">
+                <div className="w-32 h-32 p-1.5 bg-gradient-to-tr from-[#e63946] to-[#a8dadc] rounded-full shadow-md">
+                  <img
+                    src={creator?.creatorImage || "https://i.ibb.co/z6BC8H5/default-profile.png"}
+                    alt={creator?.creatorName}
+                    className="w-full h-full object-cover rounded-full border-4 border-white"
+                  />
                 </div>
+                <div className="absolute bottom-1 right-2 bg-blue-500 text-white p-1 rounded-full border-2 border-white shadow-sm">
+                   <HiOutlineBadgeCheck className="text-lg" />
+                </div>
+              </div>
+
+              {/* Creator Info */}
+              <div className="z-10 space-y-3">
+                <h3 className="text-xl font-bold text-[#1d3557] group-hover:text-[#e63946] transition-colors">
+                  {creator?.creatorName}
+                </h3>
+                
+                <div className="inline-block bg-[#f1faee] px-4 py-1 rounded-full">
+                   <span className="text-[10px] uppercase tracking-widest font-black text-teal-600 block leading-tight">Featured Contest</span>
+                   <span className="text-sm font-semibold text-[#1d3557]">{creator?.contestName}</span>
+                </div>
+
+                <p className="text-gray-500 text-sm italic leading-relaxed pt-2">
+                  "{creator?.description?.length > 100 
+                    ? creator.description.slice(0, 100) + "..." 
+                    : creator.description}"
+                </p>
+              </div>
+
+              {/* Success Badge Overlay */}
+              <div className="absolute -bottom-2 -right-2 opacity-5 transition-opacity group-hover:opacity-10">
+                 <HiOutlineBadgeCheck className="text-9xl text-[#1d3557]" />
               </div>
             </div>
           </div>
         ))}
       </div>
+
+      {/* Loading State Skeleton (Simple) */}
+      {isLoading && (
+        <div className="text-center py-10">
+          <span className="loading loading-dots loading-lg text-[#e63946]"></span>
+        </div>
+      )}
     </div>
   );
 };
