@@ -18,7 +18,7 @@ const CheckoutForm = ({ loadedContest }) => {
   const [processing, setProcessing] = useState(false);
   const navigate = useNavigate();
 
-  // ১. পেমেন্ট ইনটেন্ট তৈরি
+  
   useEffect(() => {
     if (loadedContest?.price > 0) {
       axiosSecure
@@ -42,7 +42,7 @@ const CheckoutForm = ({ loadedContest }) => {
 
     const cardNumber = elements.getElement(CardNumberElement);
 
-    // ২. পেমেন্ট কনফার্ম করা
+   
     const { paymentIntent, error: confirmError } = await stripe.confirmCardPayment(clientSecret, {
       payment_method: {
         card: cardNumber,
@@ -62,7 +62,7 @@ const CheckoutForm = ({ loadedContest }) => {
     if (paymentIntent.status === "succeeded") {
       setTransactionId(paymentIntent.id);
 
-      // ৩. ডাটাবেসে সেভ করা
+    
       const registration = {
         email: user.email,
         name: user.displayName,
@@ -96,7 +96,7 @@ const CheckoutForm = ({ loadedContest }) => {
 
   const isExist = winningCount?.filter(win => win?.contestId === loadedContest._id) || [];
 
-  // ইনপুট ফিল্ডের স্টাইল
+  
   const elementOptions = {
     style: {
       base: {

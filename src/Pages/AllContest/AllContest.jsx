@@ -6,27 +6,22 @@ import { FaFilePen } from "react-icons/fa6";
 import { useEffect, useState } from "react";
 import { BallTriangle } from "react-loader-spinner";
 import AOS from "aos";
-const AllContest = () =>
-{
+
+const AllContest = () => {
   useEffect(() => {
     AOS.init({
       duration: 1000,
-      delay: 300,
+      delay: 200,
+      once: true,
     });
   }, []);
+
   const axiosSecure = useAxios();
   const [category, setCategory] = useState("");
-  const handleClick = (type) => {
-    setCategory(type);
-  };
   const [page, setPage] = useState(1);
   const limit = 10;
 
-  const {
-    data = [],
-    isLoading,
-    isError,
-  } = useQuery({
+  const { data = [], isLoading, isError } = useQuery({
     queryKey: ["allContest", category, page],
     queryFn: async () => {
       const res = await axiosSecure.get(
@@ -36,140 +31,107 @@ const AllContest = () =>
     },
   });
 
+  const categories = [
+    { label: "Business Contest", icon: FaBriefcase },
+    { label: "Medical Contest", icon: FaFirstAid },
+    { label: "Article Writing", icon: FaFilePen },
+    { label: "Gaming", icon: FaGamepad },
+  ];
+
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center min-h-[calc(100vh-200px)]">
-        <BallTriangle
-          height={100}
-          width={100}
-          radius={5}
-          color="#4fa94d"
-          ariaLabel="ball-triangle-loading"
-          wrapperClass={{}}
-          wrapperStyle=""
-          visible={true}
-        />
+      <div className="flex justify-center items-center min-h-[60vh]">
+        <BallTriangle height={100} width={100} color="#e63946" visible={true} />
       </div>
     );
   }
 
-  if (isError) {
-    return <div>{isError.message}</div>;
-  }
-
-  const totalContest = data?.contestCount;
-  const pages = Math?.ceil(totalContest / limit);
-  const pageOfNum = [...Array(pages).fill(0)];
-
-  const handlePrev = () => {
-    if (page > 1) {
-      setPage(page - 1);
-    }
-  };
-  const handleNext = () => {
-    if (page < pages) {
-      setPage(page + 1);
-    }
-  };
+  const totalContest = data?.contestCount || 0;
+  const pages = Math.ceil(totalContest / limit);
+  const pageNumbers = [...Array(pages).keys()].map(n => n + 1);
 
   return (
-    <div className="max-w-7xl mx-auto">
-      <div className="flex gap-4 justify-center items-center overflow-auto px-4">
-        <div
-          data-aos="zoom-in-up"
-          onClick={() => handleClick("Business Contest")}
-          className={`flex flex-col  items-center justify-center gap-2 p-3 hover:text-neutral-800 transition cursor-pointer ${
-            category === "Business Contest"
-              ? " text-blue-600 border-blue-600 border-b-4"
-              : ""
+    <div className="max-w-7xl mx-auto px-4 py-10">
+      {/* Category Tabs Section */}
+      <div className="flex justify-start md:justify-center items-center gap-4 overflow-x-auto pb-6 no-scrollbar">
+        <button
+          onClick={() => { setCategory(""); setPage(1); }}
+          className={`flex flex-col items-center min-w-[100px] p-4 rounded-2xl transition-all duration-300 ${
+            category === "" ? "bg-[#e63946] text-white shadow-lg" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
           }`}
         >
-          <FaBriefcase size={26}></FaBriefcase>
-          <p className="text-sm font-medium">Business Contest</p>
-        </div>
-        <div
-          data-aos="zoom-in-up"
-          onClick={() => handleClick("Medical Contest")}
-          className={`flex flex-col  items-center justify-center gap-2 p-3 hover:text-neutral-800 transition cursor-pointer ${
-            category === "Medical Contest"
-              ? " text-blue-600 border-blue-600 border-b-4"
-              : ""
-          }`}
-        >
-          <FaFirstAid size={26} />
-          <p className="text-sm font-medium">Medical Contest</p>
-        </div>
-        <div
-          data-aos="zoom-in-up"
-          onClick={() => handleClick("Article Writing")}
-          className={`flex flex-col  items-center justify-center gap-2 p-3 hover:text-neutral-800 transition cursor-pointer ${
-            category === "Article Writing"
-              ? " text-blue-600 border-blue-600 border-b-4"
-              : ""
-          }`}
-        >
-          <FaFilePen size={26} />
-          <p className="text-sm font-medium">Article Writing</p>
-        </div>
-        <div
-          data-aos="zoom-in-up"
-          onClick={() => handleClick("Gaming")}
-          className={`flex flex-col  items-center justify-center gap-2 p-3 hover:text-neutral-800 transition cursor-pointer ${
-            category === "Gaming"
-              ? " text-blue-600 border-blue-600 border-b-4"
-              : ""
-          }`}
-        >
-          <FaGamepad size={26} />
-          <p className="text-sm font-medium">Gaming</p>
-        </div>
-      </div>
+          <span className="text-xl font-bold">All</span>
+          <p className="text-xs font-medium">Contests</p>
+        </button>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 mb-8 gap-4 px-2">
-        {data?.allContest?.map((contest) => (
-          <Contest key={contest._id} contest={contest}></Contest>
+        {categories.map((item) => (
+          <button
+            key={item.label}
+            data-aos="fade-down"
+            onClick={() => { setCategory(item.label); setPage(1); }}
+            className={`flex flex-col items-center min-w-[120px] gap-2 p-4 rounded-2xl transition-all duration-300 ${
+              category === item.label
+                ? "bg-[#1d3557] text-white shadow-lg scale-105"
+                : "bg-white border border-gray-200 text-gray-500 hover:border-[#1d3557] shadow-sm"
+            }`}
+          >
+            <item.icon size={24} />
+            <p className="text-xs font-bold whitespace-nowrap">{item.label}</p>
+          </button>
         ))}
       </div>
-      <div className="flex justify-between my-6 items-center p-2 mx-3 rounded-xl shadow-lg">
-        <div>
-          <h2 data-aos="zoom-in-up" className="text-xl font-bold text-gray-700">
-            Page {page} Out Of {pageOfNum.length}
-          </h2>
+
+      {/* Contests Grid */}
+      {data?.allContest?.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8 my-10">
+          {data?.allContest?.map((contest) => (
+            <Contest key={contest._id} contest={contest} />
+          ))}
         </div>
-        <div className="join rounded-lg">
-          <button
-            data-aos="zoom-in-up"
-            onClick={handlePrev}
-            className="join-item btn"
-          >
-            «
-          </button>
-          {pageOfNum.map((item, index) => {
-            const pageNum = index + 1;
-            return (
+      ) : (
+        <div className="text-center py-20 bg-gray-50 rounded-3xl my-10">
+          <p className="text-gray-400 text-xl font-medium italic">No active contests found in this category.</p>
+        </div>
+      )}
+
+      {/* Modern Pagination Section */}
+      {pages > 1 && (
+        <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white p-5 rounded-2xl shadow-xl border border-gray-100">
+          <div className="text-gray-600 font-semibold">
+            Showing <span className="text-[#e63946]">{page}</span> of {pages} Pages
+          </div>
+
+          <div className="join shadow-sm border border-gray-200">
+            <button
+              disabled={page === 1}
+              onClick={() => setPage(page - 1)}
+              className="join-item btn bg-white hover:bg-gray-100 border-none disabled:bg-gray-50"
+            >
+              « Previous
+            </button>
+            
+            {pageNumbers.map((pageNum) => (
               <button
                 key={pageNum}
-                data-aos="zoom-in-up"
                 onClick={() => setPage(pageNum)}
-                className={
-                  page === pageNum
-                    ? "join-item btn btn-active"
-                    : "join-item btn"
-                }
+                className={`join-item btn border-none px-6 ${
+                  page === pageNum ? "bg-[#1d3557] text-white hover:bg-[#1d3557]" : "bg-white hover:bg-gray-100"
+                }`}
               >
                 {pageNum}
               </button>
-            );
-          })}
-          <button
-            data-aos="zoom-in-up"
-            onClick={handleNext}
-            className="join-item btn"
-          >
-            »
-          </button>
+            ))}
+
+            <button
+              disabled={page === pages}
+              onClick={() => setPage(page + 1)}
+              className="join-item btn bg-white hover:bg-gray-100 border-none disabled:bg-gray-50"
+            >
+              Next »
+            </button>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
