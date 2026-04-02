@@ -44,7 +44,7 @@ const Router = createBrowserRouter([
         loader: ({ params }) =>
           fetch(
             // `https://contest-hub-server-site.vercel.app/contests/${params.id}`
-            `http://localhost:5000/contests/${params.id}`
+            `https://contest-hub-server-dun.vercel.app/${params.id}`
           ),
       },
       {
@@ -57,7 +57,7 @@ const Router = createBrowserRouter([
         loader: ({ params }) =>
           fetch(
             // `https://contest-hub-server-site.vercel.app/contests/${params.id}`
-            `http://localhost:5000/contests/${params.id}`
+            `https://contest-hub-server-dun.vercel.app/${params.id}`
           ),
       },
       {
@@ -143,7 +143,7 @@ const Router = createBrowserRouter([
         loader: ({ params }) =>
           fetch(
             // `https://contest-hub-server-site.vercel.app/contests/${params.id}`
-            `http://localhost:5000/contests/${params.id}`
+            `https://contest-hub-server-dun.vercel.app/${params.id}`
           ),
       },
       {
