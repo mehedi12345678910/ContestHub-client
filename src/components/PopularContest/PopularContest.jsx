@@ -212,7 +212,7 @@ const PopularContest = ({ value }) => {
               <h5 className="text-xl font-bold text-[#1d3557] mb-3 group-hover:text-[#e63946] transition-colors duration-300">
                 {popular.contestName}
               </h5>
-                 <p>${popular.price}</p>
+                 <p className="text-2xl font-semibold">${popular.price}</p>
               <p className="text-gray-600 text-sm leading-relaxed mb-6 flex-grow">
                 {popular?.description?.length > 90
                   ? `${popular.description.slice(0, 90)}...`
